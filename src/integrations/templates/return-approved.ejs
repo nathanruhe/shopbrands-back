@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Título del email dinámico según el ID del pedido -->
+  <title>Devolución aprobada — Pedido #<%= order.id %></title>
+  <!-- Estilos limpios y responsivos para email -->
+  <style>
+    body { font-family: 'Montserrat', Arial, sans-serif; background:#fafafa; color:#333; margin:0; padding:0; }
+    .container { max-width:700px; margin:0 auto; background:#fff; padding:20px; border-radius:8px; }
+    .header { display:flex; justify-content:center; align-items:center; border-bottom:3px solid #222; padding-bottom:12px; margin-bottom:18px; }
+    .logo { font-family: 'Playfair Display', serif; font-size:30px; color:#e91e63; font-weight:700; }
+    h1 { font-family:'Playfair Display', serif; font-size:20px; color:#222; text-align:center; margin-bottom:12px; }
+    p { font-size:14px; line-height:1.6; color:#444; margin:8px 0; }
+    .instructions { background:#fdeef2; border-left:4px solid #e91e63; padding:12px; border-radius:4px; margin:18px 0; }
+    .footer { border-top:3px solid #222; margin-top:24px; padding-top:18px; font-size:12px; color:#888; text-align:center; }
+    ol { margin-left: 10px; display: flex; flex-direction: column; gap: 5px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header del email con logo -->
+    <div class="header">
+      <div class="logo">ShopBrands</div>
+    </div>
+
+    <!-- Mensaje principal indicando que la devolución ha sido aprobada -->
+    <h1>Solicitud de devolución</h1>
+    <p>Hola <%= user.first_name %>, hemos revisado tu solicitud de devolución correspondiente al pedido <strong>#<%= order.id %></strong> y ha sido <strong>aprobada.</strong></p>
+
+    <!-- Sección de instrucciones para el usuario -->
+    <div class="instructions">
+      <p><strong>Pasos a seguir para la devolución:</strong></p>
+      <ol>
+        <!-- Lista de pasos detallados para garantizar la correcta devolución de productos -->
+        <li>Asegúrate de que los productos estén en las mismas condiciones en las que los recibiste: sin uso, sin daños, y con todas las etiquetas originales.</li>
+        <li>Coloca los productos cuidadosamente en su embalaje original, asegurando que estén protegidos durante el transporte.</li>
+        <li>Incluye dentro del paquete una copia de la factura o el número de pedido correspondiente.</li>
+        <li>Adjunta, si es necesario, cualquier accesorio o componente adicional que venía con el producto.</li>
+        <li>Envía el paquete a la siguiente dirección:</li>
+      </ol>
+      <!-- Dirección física de la tienda para la devolución -->
+      <p><strong>ShopBrands S.L.</strong><br>
+      Av. del Comercio 45, 08406, Madrid, España</p>
+    </div>
+
+    <!-- Información sobre el reembolso y tiempos estimados -->
+    <p>Una vez que recibamos y revisemos los productos, te informaremos por correo y procesaremos el reembolso correspondiente al método de pago utilizado en un plazo de 3 a 5 días hábiles.</p>
+    <p>Gracias por tu confianza,<br><strong>El equipo de ShopBrands</strong></p>
+
+    <!-- Footer con contacto para soporte -->
+    <div class="footer">
+      Si tienes dudas, escríbenos a <a href="mailto:soporte@shopbrands.com">soporte@shopbrands.com</a>
+    </div>
+  </div>
+</body>
+</html>

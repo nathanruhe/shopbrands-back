@@ -1,0 +1,33 @@
+{
+  // Archivo de configuración de TypeScript para backend Node.js + Express
+  "compilerOptions": {
+    /* === ESTRUCTURA DE ARCHIVOS === */
+    "rootDir": "./src",              // Carpeta de origen del código
+    "outDir": "./dist",              // Carpeta de salida tras compilar
+
+    /* === CONFIGURACIÓN DE MÓDULOS === */
+    "module": "CommonJS",            // Compatible con Node.js (requerido para Express)
+    "target": "ES2020",              // Buena compatibilidad y soporte async/await
+    "lib": ["ES2020"],               // Librerías base incluidas
+    "esModuleInterop": true,         // Permite imports más limpios (import express from 'express')
+    "moduleResolution": "node",      // Usa la resolución de módulos de Node.js
+    "types": ["node"],               // Incluye tipado global de Node
+    "resolveJsonModule": true,       // Permite importar archivos .json directamente
+
+    /* === SALIDA Y MAPAS === */
+    "sourceMap": true,               // Crea mapas de depuración (.map)
+    "declaration": true,             // Genera archivos .d.ts para tipado
+    "declarationMap": true,          // Mapa de declaraciones
+
+    /* === CHEQUEO ESTRICTO DE TIPOS === */
+    "strict": true,                  // Activa todas las comprobaciones estrictas
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,            // Evita errores de tipado en libs externas
+
+    /* === OTRAS CONFIGS === */
+    "forceConsistentCasingInFileNames": true, // Evita problemas en Windows/Linux
+  },
+  "include": ["src"],                // Compila solo lo que hay en /src
+  "exclude": ["node_modules", "dist"] // Ignora carpetas innecesarias
+}

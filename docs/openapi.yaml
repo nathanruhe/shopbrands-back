@@ -1,0 +1,2176 @@
+openapi: 3.0.3
+info:
+  title: Shop Backend API
+  description: API completa para gestión de usuarios, productos, pedidos, carrito, pagos y notificaciones
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor local
+
+tags:
+  - name: Auth
+    description: Autenticación (login, register)
+  - name: Users
+    description: Gestión de usuarios
+  - name: Addresses
+    description: Gestión de direcciones
+  - name: Products
+    description: Gestión de productos
+  - name: Cart
+    description: Gestión del carrito de compras
+  - name: Orders
+    description: Gestión de pedidos
+  - name: Payments
+    description: Gestión de pagos
+  - name: Notifications
+    description: Notificaciones en tiempo real
+  - name: Dashboard
+    description: Panel de administración
+  - name: Returns
+    description: Gestión de devoluciones
+  - name: Invoice
+    description: Generación de facturas (PDF)
+
+paths:
+  # -------------------- AUTH --------------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar un nuevo usuario
+      description: Registra un usuario en la base de datos. No requiere autenticación.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRegisterRequest'
+      responses:
+        '201':
+          description: Usuario registrado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Usuario registrado correctamente"
+        '400':
+          description: Error de validación o negocio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión (login)
+      description: Autentica usuario y devuelve un JWT y datos públicos del usuario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: Login correcto — token y datos de usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '400':
+          description: Credenciales inválidas u otro error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # -------------------- USERS --------------------
+  /users/me:
+    get:
+      summary: Obtener perfil del usuario autenticado
+      description: Retorna los datos del usuario actual según el JWT.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil del usuario autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '401':
+          description: Token inválido o no proporcionado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Actualizar perfil del usuario autenticado
+      description: Permite modificar los datos del usuario actual.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Usuario actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublic'
+        '400':
+          description: Error de validación o usuario no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Eliminar la cuenta del usuario autenticado
+      description: Elimina definitivamente la cuenta del usuario actual.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cuenta eliminada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDeleteResponse'
+        '401':
+          description: Token inválido o no proporcionado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users:
+    get:
+      summary: Listar todos los usuarios
+      description: Devuelve una lista de todos los usuarios registrados. Solo accesible por administradores.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de usuarios.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '403':
+          description: No autorizado (solo administradores).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}:
+    get:
+      summary: Obtener un usuario por ID
+      description: Retorna los datos de un usuario específico. Solo accesible por administradores.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuario encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: Usuario no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Actualizar un usuario por ID
+      description: Modifica los datos de un usuario específico (solo administradores).
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Usuario actualizado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Error al actualizar el usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Eliminar un usuario por ID
+      description: Elimina un usuario del sistema. Solo accesible por administradores.
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuario eliminado correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDeleteResponse'
+        '404':
+          description: Usuario no encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # -------------------- ADDRESSES --------------------
+  /addresses:
+    get:
+      summary: Obtener todas las direcciones del usuario autenticado
+      description: Devuelve una lista con todas las direcciones asociadas al usuario autenticado mediante el token JWT.
+      tags: [Addresses]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de direcciones del usuario.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+        '401':
+          description: Token inválido o no proporcionado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Crear una nueva dirección para el usuario autenticado
+      description: Crea una dirección asociada al usuario autenticado.
+      tags: [Addresses]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressCreateRequest'
+      responses:
+        '201':
+          description: Dirección creada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressCreateResponse'
+        '400':
+          description: Error de validación o campos faltantes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /addresses/{id}:
+    put:
+      summary: Actualizar una dirección del usuario autenticado
+      description: Permite modificar los datos de una dirección específica del usuario autenticado.
+      tags: [Addresses]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressUpdateRequest'
+      responses:
+        '200':
+          description: Dirección actualizada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressUpdateResponse'
+        '400':
+          description: Error de validación o dirección no encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Eliminar una dirección del usuario autenticado
+      description: Elimina una dirección específica asociada al usuario autenticado.
+      tags: [Addresses]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Dirección eliminada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddressDeleteResponse'
+        '400':
+          description: Error al eliminar la dirección.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # -------------------- PRODUCTS --------------------
+  /products:
+    get:
+      summary: Obtener todos los productos
+      description: Devuelve una lista de productos. Permite filtrar por categorías y aplicar paginación.
+      tags: [Products]
+      parameters:
+        - name: categories
+          in: query
+          description: IDs de categorías separados por comas (ej. `1,2,3`)
+          schema:
+            type: string
+            example: "1,2"
+        - name: limit
+          in: query
+          description: Límite de resultados devueltos
+          schema:
+            type: integer
+            example: 10
+        - name: offset
+          in: query
+          description: Desplazamiento para paginación
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: Lista de productos obtenida correctamente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '400':
+          description: Error al obtener productos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Crear un nuevo producto (solo admin)
+      description: Crea un nuevo producto con imagen (multipart/form-data). Requiere token de administrador.
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '201':
+          description: Producto creado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductCreateResponse'
+        '400':
+          description: Error al crear producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products/{id}:
+    get:
+      summary: Obtener un producto por ID
+      description: Devuelve la información de un producto específico con sus categorías asociadas.
+      tags: [Products]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 5
+      responses:
+        '200':
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Error al obtener el producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Actualizar un producto (solo admin)
+      description: Permite actualizar los campos de un producto existente. Acepta `application/json` o `multipart/form-data` para cambiar la imagen.
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 5
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: Producto actualizado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Error al actualizar producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Eliminar un producto (solo admin)
+      description: Elimina un producto y su imagen asociada del sistema.
+      tags: [Products]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 5
+      responses:
+        '200':
+          description: Producto eliminado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDeleteResponse'
+        '400':
+          description: Error al eliminar producto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # -------------------- CART --------------------
+  /cart:
+    get:
+      summary: Obtener el carrito del usuario autenticado
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carrito obtenido correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '401':
+          description: No autenticado
+
+    delete:
+      summary: Vaciar completamente el carrito del usuario
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Carrito vaciado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Carrito eliminado correctamente"
+        '401':
+          description: No autenticado
+
+  /cart/items:
+    post:
+      summary: Añadir un producto al carrito
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [product_id, quantity]
+              properties:
+                product_id:
+                  type: integer
+                  example: 15
+                quantity:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: Item añadido correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '400':
+          description: Error al añadir item (por ejemplo stock insuficiente)
+
+  /cart/items/{id}:
+    put:
+      summary: Actualizar cantidad de un item del carrito
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID del item del carrito
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  example: 3
+      responses:
+        '200':
+          description: Cantidad actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '400':
+          description: Error al actualizar cantidad
+
+    delete:
+      summary: Eliminar un item del carrito
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID del item del carrito
+      responses:
+        '200':
+          description: Item eliminado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '400':
+          description: Error al eliminar item
+
+  /cart/checkout:
+    post:
+      summary: Realizar checkout del carrito (crea orden + sesión de pago)
+      tags: [Cart]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address_id, frontendUrl]
+              properties:
+                address_id:
+                  type: integer
+                  example: 4
+                frontendUrl:
+                  type: string
+                  example: "https://miapp.com"
+      responses:
+        '200':
+          description: Checkout iniciado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orderId:
+                    type: integer
+                    example: 123
+                  url:
+                    type: string
+                    example: "https://checkout.stripe.com/session/abc123"
+        '400':
+          description: Error al iniciar checkout
+
+  # -------------------- ORDERS --------------------
+  /orders:
+    post:
+      summary: Crear un nuevo pedido
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Pedido creado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  orderId:
+                    type: integer
+        '400':
+          description: Error en la creación del pedido
+
+    get:
+      summary: Listar todos los pedidos (admin)
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de todos los pedidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '400':
+          description: Error al obtener pedidos
+
+  /orders/me:
+    get:
+      summary: Obtener todos los pedidos del usuario autenticado
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de pedidos del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '400':
+          description: Error al obtener pedidos
+
+  /orders/{id}:
+    get:
+      summary: Obtener un pedido por ID
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pedido encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Pedido no encontrado
+
+    delete:
+      summary: Eliminar un pedido por ID (admin)
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Pedido eliminado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Error al eliminar pedido
+
+  /orders/{id}/status:
+    put:
+      summary: Actualizar estado de un pedido (admin)
+      tags: [Orders]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Estado actualizado correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Error al actualizar estado
+
+  /orders/{id}/return:
+    post:
+      summary: Solicitar devolución de un pedido
+      tags: [Returns]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestReturn'
+      responses:
+        '201':
+          description: Devolución creada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  returnId:
+                    type: integer
+        '400':
+          description: Error al solicitar devolución
+
+  /orders/me/returns:
+    get:
+      summary: Obtener todas las devoluciones del usuario
+      tags: [Returns]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de devoluciones del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Return'
+        '400':
+          description: Error al obtener devoluciones
+
+  /orders/returns/{id}/status:
+    put:
+      summary: Actualizar estado de una devolución (admin)
+      tags: [Returns]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [approved, rejected]
+      responses:
+        '200':
+          description: Estado de devolución actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '400':
+          description: Error al actualizar devolución
+
+  /orders/invoice/{id}:
+    get:
+      summary: Generar PDF de factura de un pedido
+      tags: [Invoice]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: PDF generado correctamente
+          content:
+            application/pdf: {}
+        '400':
+          description: Error al generar factura
+        '404':
+          description: Pedido no encontrado
+
+  # -------------------- PAYMENTS --------------------
+  /payments/checkout-session:
+    post:
+      summary: Crear sesión de Stripe Checkout
+      description: |
+        Crea una sesión de pago en Stripe Checkout asociada a un pedido específico.
+        Devuelve la URL del checkout para redirigir al cliente.
+      tags: [Payments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCheckoutRequest'
+      responses:
+        '200':
+          description: Sesión de pago creada correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCheckoutResponse'
+        '400':
+          description: Parámetros inválidos (faltan orderId o frontendUrl)
+        '404':
+          description: Pedido no encontrado
+        '500':
+          description: Error interno creando sesión de Stripe
+
+  /payments/webhook:
+    post:
+      summary: Webhook de Stripe
+      description: |
+        Endpoint para recibir eventos de Stripe, como confirmaciones de pago (`checkout.session.completed`).
+        Stripe valida este endpoint mediante la cabecera `stripe-signature`.
+        Nota: este endpoint suele recibir el "raw body" de Stripe para validar la firma; documenta en tu cliente que debe usar raw body.
+      tags: [Payments]
+      parameters:
+        - name: stripe-signature
+          in: header
+          required: true
+          description: Firma enviada por Stripe para validar el evento
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Evento enviado por Stripe
+      responses:
+        '200':
+          description: Webhook recibido correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+        '400':
+          description: Error de validación de firma o payload inválido
+        '500':
+          description: Error interno procesando evento
+
+  # -------------------- DASHBOARD --------------------
+  /dashboard/overview:
+    get:
+      summary: Resumen general del dashboard
+      description: Total de ventas, cantidad de pedidos, ticket promedio y usuarios totales
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos de resumen del dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardOverview'
+        '500':
+          description: Error interno
+
+  /dashboard/orders-by-status:
+    get:
+      summary: Pedidos agrupados por estado
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cantidad de pedidos por estado
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrdersByStatus'
+        '500':
+          description: Error interno
+
+  /dashboard/recent-orders:
+    get:
+      summary: Pedidos recientes
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Número máximo de pedidos a devolver (default 10)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de pedidos recientes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecentOrder'
+        '500':
+          description: Error interno
+
+  /dashboard/top-products:
+    get:
+      summary: Productos más vendidos
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Número máximo de productos (default 10)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de productos más vendidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TopProduct'
+        '500':
+          description: Error interno
+
+  /dashboard/sales-by-day:
+    get:
+      summary: Ventas diarias
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          description: Número de días a considerar (default 30)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ventas por día
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SalesByDay'
+        '500':
+          description: Error interno
+
+  /dashboard/sales-by-month:
+    get:
+      summary: Ventas mensuales
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: months
+          in: query
+          description: Número de meses a considerar (default 6)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ventas por mes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SalesByMonth'
+        '500':
+          description: Error interno
+
+  /dashboard/users-by-day:
+    get:
+      summary: Usuarios registrados por día
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          description: Número de días a considerar (default 30)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cantidad de usuarios registrados por día
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsersByDay'
+        '500':
+          description: Error interno
+
+  /dashboard/orders:
+    get:
+      summary: Pedidos filtrados
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filtrar por estado del pedido
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: Fecha de inicio (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: end
+          in: query
+          description: Fecha de fin (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: userId
+          in: query
+          description: Filtrar por ID de usuario
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de pedidos filtrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FilteredOrder'
+        '500':
+          description: Error interno
+
+  /dashboard/users:
+    get:
+      summary: Lista de usuarios
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Número máximo de usuarios (default 50)
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '500':
+          description: Error interno
+
+  /dashboard/filters:
+    get:
+      summary: Opciones de filtros del dashboard
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estados de pedidos y métodos de pago disponibles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterOptions'
+        '500':
+          description: Error interno
+
+  /dashboard/returns-summary:
+    get:
+      summary: Resumen de devoluciones
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Resumen de devoluciones por estado y total aprobado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReturnsSummary'
+        '500':
+          description: Error interno
+
+  /dashboard/returns:
+    get:
+      summary: Todas las devoluciones
+      tags: [Dashboard]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de devoluciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Return'
+        '500':
+          description: Error interno
+
+  # -------------------- NOTIFICATIONS --------------------
+  /notifications:
+    post:
+      summary: Crear notificación para todos los usuarios conectados
+      description: Envía un mensaje a todos los usuarios que estén conectados actualmente mediante WebSocket.
+      tags: [Notifications]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationMessage'
+      responses:
+        '200':
+          description: Notificación enviada a usuarios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Error en el mensaje de entrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notifications/admin:
+    post:
+      summary: Crear notificación solo para administradores conectados
+      description: Envía un mensaje únicamente a los administradores conectados mediante WebSocket.
+      tags: [Notifications]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationMessage'
+      responses:
+        '200':
+          description: Notificación enviada a admins
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Error en el mensaje de entrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: No autorizado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Acceso denegado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    # -------------------- AUTH --------------------
+    AuthRegisterRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - email
+        - password
+      properties:
+        first_name:
+          type: string
+          example: "María"
+        last_name:
+          type: string
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          example: "maria@example.com"
+        password:
+          type: string
+          example: "contraseñaSegura123"
+        role:
+          type: string
+          description: "Opcional: 'user' o 'admin' (si lo permites)."
+          example: "user"
+        phone:
+          type: string
+          example: "+34 600 000 000"
+
+    AuthLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "maria@example.com"
+        password:
+          type: string
+          example: "contraseñaSegura123"
+
+    AuthLoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT para autenticación (bearer)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          $ref: '#/components/schemas/UserPublic'
+
+    UserPublic:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 12
+        first_name:
+          type: string
+          example: "María"
+        last_name:
+          type: string
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          example: "maria@example.com"
+        role:
+          type: string
+          example: "user"
+        phone:
+          type: string
+          example: "+34 600 000 000"
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
+        error:
+          type: string
+          nullable: true
+
+    # -------------------- USERS --------------------
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        first_name:
+          type: string
+          example: "María"
+        last_name:
+          type: string
+          example: "Pérez"
+        email:
+          type: string
+          format: email
+          example: "maria@example.com"
+        role:
+          type: string
+          example: "user"
+        phone:
+          type: string
+          example: "+34 600 000 000"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-03-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-04-01T12:30:00Z"
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          example: "Ana"
+        last_name:
+          type: string
+          example: "Gómez"
+        email:
+          type: string
+          format: email
+          example: "ana.gomez@example.com"
+        phone:
+          type: string
+          example: "+34 611 222 333"
+      description: "Campos opcionales a actualizar en el perfil del usuario"
+
+    UserDeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Usuario con ID 5 eliminado correctamente"
+
+    # -------------------- ADDRESSES --------------------
+    Address:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        first_name:
+          type: string
+          example: "María"
+        last_name:
+          type: string
+          example: "Pérez"
+        street:
+          type: string
+          example: "Calle Mayor 12, 3ºA"
+        city:
+          type: string
+          example: "Madrid"
+        province:
+          type: string
+          example: "Madrid"
+        postal_code:
+          type: string
+          example: "28013"
+        country:
+          type: string
+          example: "España"
+        phone:
+          type: string
+          example: "+34 600 123 456"
+        type:
+          type: string
+          example: "shipping"
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-03-01T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-03-01T12:00:00Z"
+
+    AddressCreateRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - street
+        - city
+        - province
+        - postal_code
+        - country
+      properties:
+        first_name:
+          type: string
+          example: "María"
+        last_name:
+          type: string
+          example: "Pérez"
+        street:
+          type: string
+          example: "Calle Mayor 12, 3ºA"
+        city:
+          type: string
+          example: "Madrid"
+        province:
+          type: string
+          example: "Madrid"
+        postal_code:
+          type: string
+          example: "28013"
+        country:
+          type: string
+          example: "España"
+        phone:
+          type: string
+          example: "+34 600 123 456"
+        type:
+          type: string
+          example: "billing"
+
+    AddressCreateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Dirección añadida correctamente"
+
+    AddressUpdateRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          example: "Ana"
+        last_name:
+          type: string
+          example: "Gómez"
+        street:
+          type: string
+          example: "Avenida del Sol 45"
+        city:
+          type: string
+          example: "Barcelona"
+        province:
+          type: string
+          example: "Cataluña"
+        postal_code:
+          type: string
+          example: "08025"
+        country:
+          type: string
+          example: "España"
+        phone:
+          type: string
+          example: "+34 611 222 333"
+        type:
+          type: string
+          example: "shipping"
+
+    AddressUpdateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Dirección actualizada correctamente"
+
+    AddressDeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Dirección eliminada correctamente"
+
+    # -------------------- PRODUCTS --------------------
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Camisetas"
+        description:
+          type: string
+          example: "Ropa superior de hombre y mujer"
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        name:
+          type: string
+          example: "Camiseta básica blanca"
+        description:
+          type: string
+          example: "Camiseta unisex 100% algodón"
+        image_url:
+          type: string
+          example: "https://api.miapp.com/uploads/1730204829-12345-shirt.jpg"
+        price:
+          type: number
+          example: 19.99
+        stock:
+          type: integer
+          example: 120
+        size:
+          type: string
+          example: "M"
+        color:
+          type: string
+          example: "Blanco"
+        sku:
+          type: string
+          example: "TSHIRT-WHITE-M"
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - name
+        - price
+      properties:
+        name:
+          type: string
+          example: "Camiseta básica blanca"
+        description:
+          type: string
+          example: "Camiseta unisex 100% algodón"
+        price:
+          type: number
+          example: 19.99
+        stock:
+          type: integer
+          example: 100
+        size:
+          type: string
+          example: "M"
+        color:
+          type: string
+          example: "Blanco"
+        sku:
+          type: string
+          example: "TSHIRT-WHITE-M"
+        categories:
+          type: array
+          items:
+            type: integer
+          example: [1, 2]
+        image:
+          type: string
+          format: binary
+          description: Imagen del producto (archivo)
+
+    ProductCreateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Producto creado correctamente"
+        id:
+          type: integer
+          example: 42
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Camiseta básica negra"
+        description:
+          type: string
+          example: "Camiseta de algodón color negro"
+        price:
+          type: number
+          example: 21.99
+        stock:
+          type: integer
+          example: 80
+        size:
+          type: string
+          example: "L"
+        color:
+          type: string
+          example: "Negro"
+        sku:
+          type: string
+          example: "TSHIRT-BLACK-L"
+        categories:
+          type: array
+          items:
+            type: integer
+          example: [1, 3]
+        image:
+          type: string
+          format: binary
+          description: Nueva imagen (opcional)
+
+    ProductDeleteResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Producto eliminado correctamente"
+
+    # -------------------- CART --------------------
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 12
+        product_id:
+          type: integer
+          example: 5
+        product_name:
+          type: string
+          example: "Camiseta básica"
+        price:
+          type: number
+          format: float
+          example: 19.99
+        quantity:
+          type: integer
+          example: 2
+        stock:
+          type: integer
+          nullable: true
+          example: 10
+        image_url:
+          type: string
+          nullable: true
+          example: "https://api.miapp.com/uploads/123-camiseta.jpg"
+        subtotal:
+          type: number
+          format: float
+          example: 39.98
+
+    CartResponse:
+      type: object
+      properties:
+        cart_id:
+          type: integer
+          example: 7
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        total:
+          type: number
+          format: float
+          example: 59.97
+
+    # -------------------- ORDERS --------------------
+    CreateOrderRequest:
+      type: object
+      required:
+        - address_id
+        - items
+        - total
+      properties:
+        address_id:
+          type: integer
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - product_id
+              - quantity
+              - price
+            properties:
+              product_id:
+                type: integer
+              quantity:
+                type: integer
+              price:
+                type: number
+        total:
+          type: number
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        status:
+          type: string
+        status_label:
+          type: string
+        total:
+          type: number
+        total_paid:
+          type: number
+          nullable: true
+        discount_amount:
+          type: number
+          nullable: true
+        promotion_code:
+          type: string
+          nullable: true
+        address:
+          $ref: '#/components/schemas/Address'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        product_name:
+          type: string
+        quantity:
+          type: integer
+        price:
+          type: number
+        image_url:
+          type: string
+          nullable: true
+        size:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        sku:
+          type: string
+          nullable: true
+
+    RequestReturn:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+
+    Return:
+      type: object
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        user_id:
+          type: integer
+        reason:
+          type: string
+        total_amount:
+          type: number
+        status:
+          type: string
+        order_status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # -------------------- PAYMENTS --------------------
+    CreateCheckoutRequest:
+      type: object
+      required:
+        - orderId
+        - frontendUrl
+      properties:
+        orderId:
+          type: integer
+          description: ID del pedido a pagar
+          example: 123
+        frontendUrl:
+          type: string
+          format: uri
+          description: URL del frontend a la que Stripe redirige después del pago
+          example: https://mi-tienda.com
+
+    CreateCheckoutResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: URL del checkout de Stripe
+          example: https://checkout.stripe.com/c/pay/cs_test_abc123xyz
+
+    StripeEvent:
+      type: object
+      description: Objeto del evento recibido desde Stripe Webhook
+      properties:
+        id:
+          type: string
+          example: evt_1PQYwY2eZvKYlo2CeSZYbN8a
+        type:
+          type: string
+          example: checkout.session.completed
+        data:
+          type: object
+          properties:
+            object:
+              type: object
+              description: Objeto principal del evento (por ejemplo, sesión de checkout)
+
+    PaymentRecord:
+      type: object
+      description: Registro de pago guardado en base de datos
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        transaction_id:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: float
+        status:
+          type: string
+          example: completed
+        method:
+          type: string
+          example: card
+        discount_amount:
+          type: number
+          nullable: true
+        promotion_code:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    # -------------------- DASHBOARD --------------------
+    DashboardOverview:
+      type: object
+      properties:
+        total_sales:
+          type: number
+          format: float
+        total_orders:
+          type: integer
+        avg_order_value:
+          type: number
+          format: float
+        total_users:
+          type: integer
+
+    OrdersByStatus:
+      type: object
+      properties:
+        status:
+          type: string
+        count:
+          type: integer
+
+    RecentOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        total:
+          type: number
+          format: float
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        street:
+          type: string
+        city:
+          type: string
+        province:
+          type: string
+
+    TopProduct:
+      type: object
+      properties:
+        product_id:
+          type: integer
+        product_name:
+          type: string
+        image_url:
+          type: string
+          nullable: true
+        total_quantity:
+          type: integer
+        total_revenue:
+          type: number
+          format: float
+
+    SalesByDay:
+      type: object
+      properties:
+        day:
+          type: string
+          format: date
+        total_sales:
+          type: number
+          format: float
+        orders_count:
+          type: integer
+
+    SalesByMonth:
+      type: object
+      properties:
+        month:
+          type: string
+        total_sales:
+          type: number
+          format: float
+        orders_count:
+          type: integer
+
+    UsersByDay:
+      type: object
+      properties:
+        day:
+          type: string
+          format: date
+        users_count:
+          type: integer
+
+    FilteredOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        total:
+          type: number
+          format: float
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    FilterOptions:
+      type: object
+      properties:
+        statuses:
+          type: array
+          items:
+            type: string
+        payment_methods:
+          type: array
+          items:
+            type: string
+
+    ReturnsSummary:
+      type: object
+      properties:
+        pending:
+          type: integer
+        approved:
+          type: integer
+        rejected:
+          type: integer
+        total_amount_returned:
+          type: number
+          format: float
+
+    # -------------------- NOTIFICATIONS --------------------
+    NotificationMessage:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Mensaje de la notificación
+      required:
+        - message
+
+    NotificationResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Confirmación de envío de la notificación
