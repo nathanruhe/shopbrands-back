@@ -9,7 +9,8 @@ import {
     deleteOrder,
     requestReturn,
     getUserReturns,
-    updateReturnStatus
+    updateReturnStatus,
+    cancelOrder
 } from './orders.controller';
 import invoiceRoutes from './invoice/invoice.routes';
 
@@ -104,5 +105,15 @@ router.delete('/:id', authenticate, authorize('admin'), deleteOrder);
  * @returns {object} { message: string }
  */
 router.put('/returns/:id/status', authenticate, authorize('admin'), updateReturnStatus);
+
+
+/**
+ * @route POST /orders/:id/cancel
+ * @desc Cancelar un pedido por su ID (usuario). Solo permitido si el pedido no ha sido enviado o no está en un estado que impida la cancelación.
+ * @access Private (usuario autenticado)
+ * @param {AuthenticatedRequest} req - Request con `params.id` del pedido y `user` extraído del JWT.
+ * @param {Response} res - Response con objeto de confirmación `{ message: string, refundedAmount?: number }`.
+ */
+router.post('/:id/cancel', authenticate, cancelOrder);
 
 export default router;

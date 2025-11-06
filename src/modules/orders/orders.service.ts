@@ -16,6 +16,9 @@ import { mapOrderStatus } from '../../utils/mappers.utils';
 import { notifyAdminNewOrder } from '../../utils/notifications.util';
 import { sendReturnApprovedEmail, sendReturnRejectedEmail, sendReturnCompletedEmail } from './notifications/send-return-updates';
 import { stripe } from '../../integrations/stripe.service';
+import { sendOrderShippedEmail } from './notifications/send-order-shipped';
+import { sendOrderCancelledEmail } from './notifications/send-order-cancelled';
+import { sendOrderDeliveredEmail } from './notifications/send-order-delivered';
 
 /**
  * Reconstruye el total original de un pedido teniendo en cuenta pagos parciales y descuentos
@@ -218,16 +221,43 @@ export const OrdersService = {
     },
 
     /**
-     * Actualizar el estado de un pedido
-     * - Si el estado cambia a 'returned', procesa reembolso en Stripe
-     * - Envía correos de notificación al cliente
-     * @param {number} orderId ID del pedido
-     * @param {string} status Nuevo estado del pedido
-     * @returns {Promise<{message:string}>} Mensaje de confirmación
+     * Actualizar el estado de un pedido (solo admin).
+     * @route PUT /orders/:id/status
+     * @access Admin
+     * @param {number} orderId - ID del pedido.
+     * @param {string} status - Nuevo estado del pedido.
+     * @param {{ trackingNumber?: string }} [meta] - Información adicional (número de seguimiento opcional).
+     * @returns {Promise<{message: string}>} Mensaje de confirmación de actualización.
      */
-    async updateOrderStatus(orderId: number, status: string) {
+    async updateOrderStatus(orderId: number, status: string, meta?: { trackingNumber?: string }) {
         // 🔹 Actualizar el estado del pedido
         await db.query(UPDATE_ORDER_STATUS, [status, orderId]);
+
+        // Si el estado pasa a "shipped" → enviar email al cliente
+        if (status === 'shipped') {
+            const [orderRows]: any = await db.query('SELECT user_id FROM orders WHERE id = ?', [orderId]);
+            if (orderRows.length) {
+                const userId = orderRows[0].user_id;
+                const order = await this.getOrderWithItems(orderId, userId).catch(() => null);
+                if (order) {
+                    // trackingNumber opcional
+                    const trackingNumber = meta?.trackingNumber;
+                    await sendOrderShippedEmail(order as any, trackingNumber);
+                }
+            }
+        }
+
+        // Si el estado pasa a "delivered" → enviar email de entrega
+        if (status === 'delivered') {
+            const [orderRows]: any = await db.query('SELECT user_id FROM orders WHERE id = ?', [orderId]);
+            if (orderRows.length) {
+                const userId = orderRows[0].user_id;
+                const order = await this.getOrderWithItems(orderId, userId).catch(() => null);
+                if (order) {
+                    await sendOrderDeliveredEmail(order as any);
+                }
+            }
+        }
 
         // 🔹 Si el estado pasa a "returned", procesar reembolso
         if (status === 'returned') {
@@ -280,6 +310,66 @@ export const OrdersService = {
         return { message: 'Estado del pedido actualizado' };
     },
 
+    /**
+     * Cancelar un pedido por su ID (usuario autenticado).
+     * @route POST /orders/:id/cancel
+     * @access Private (usuario autenticado)
+     * @param {number} orderId - ID del pedido a cancelar.
+     * @param {number} userId - ID del usuario autenticado que realiza la cancelación.
+     * @returns {Promise<{message: string, refundedAmount?: number}>} Mensaje de confirmación y monto reembolsado (si aplica).
+     * @throws {Error} Si el pedido no pertenece al usuario o no puede ser cancelado en su estado actual.
+     */
+    async cancelOrder(orderId: number, userId: number) {
+        // Obtener pedido verificando propiedad
+        const [orderRows]: any = await db.query('SELECT * FROM orders WHERE id = ? AND user_id = ?', [orderId, userId]);
+        if (!orderRows.length) throw new Error('Pedido no encontrado o no pertenece al usuario');
+
+        const order = orderRows[0];
+
+        // No permitir cancelar si ya está enviado/completado/reembolsado/returned/cancelled
+        const forbidden = ['shipped', 'completed', 'returned', 'cancelled', 'awaiting_return'];
+        if (forbidden.includes(order.status)) {
+            throw new Error('No es posible cancelar este pedido en su estado actual');
+        }
+
+        // Actualizar estado a 'cancelled'
+        await db.query('UPDATE orders SET status = ? WHERE id = ?', ['cancelled', orderId]);
+
+        // Reponer stock (opcional): sumar quantity del order_items a products.stock
+        const [items]: any = await db.query('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+        for (const it of items) {
+            await db.query('UPDATE products SET stock = stock + ? WHERE id = ?', [it.quantity, it.product_id]);
+        }
+
+        // Procesar reembolsos para pagos completados
+        const [paymentsRows]: any = await db.query('SELECT id, transaction_id, amount, status FROM payments WHERE order_id = ? AND status = "completed"', [orderId]);
+
+        let refundedTotal = 0;
+        for (const payment of paymentsRows) {
+            try {
+                if (payment.transaction_id) {
+                    await stripe.refunds.create({ payment_intent: payment.transaction_id });
+                    await db.query('UPDATE payments SET status = "refunded" WHERE id = ?', [payment.id]);
+                    refundedTotal += Number(payment.amount || 0);
+                }
+            } catch (err) {
+                console.error(`Error reembolsando pago ${payment.id}:`, err);
+            }
+        }
+
+        // Obtener usuario para el email
+        const [userRows]: any = await db.query('SELECT email, first_name, last_name FROM users WHERE id = ?', [userId]);
+        const user = userRows[0] || { email: null, first_name: null, last_name: null };
+
+        // Enviar email de cancelación y reembolso
+        try {
+            await sendOrderCancelledEmail(user, { id: orderId }, refundedTotal);
+        } catch (err) {
+            console.error('Error enviando email cancelación:', err);
+        }
+
+        return { message: 'Pedido cancelado correctamente', refundedAmount: refundedTotal };
+    },
 
     /**
      * Eliminar un pedido

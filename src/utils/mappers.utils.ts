@@ -10,9 +10,9 @@
  */
 export const ORDER_STATUS_LABELS: Record<string, string> = {
     pending: 'Pendiente',
-    processing: 'En proceso',
     shipped: 'Enviado',
     completed: 'Completado',
+    delivered: 'Entregado',
     cancelled: 'Cancelado',
     awaiting_return: 'Esperando retorno',
     returned: 'Devuelto'

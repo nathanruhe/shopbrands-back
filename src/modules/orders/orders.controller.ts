@@ -72,14 +72,15 @@ export const getAllOrders = async (req: AuthenticatedRequest, res: Response) => 
  * Actualizar el estado de un pedido por su ID (solo admin).
  * @route PUT /orders/:id/status
  * @access Admin
- * @param {AuthenticatedRequest} req - Request con `params.id` y body `{ status: string }`.
+ * @param {AuthenticatedRequest} req - Request con `params.id` y body `{ status: string, trackingNumber?: string }`.
  * @param {Response} res - Response con mensaje de actualización.
  */
 export const updateOrderStatus = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const orderId = parseInt(req.params.id!);
-        const { status } = req.body;
-        await OrdersService.updateOrderStatus(orderId, status);
+        const { status, trackingNumber } = req.body; // trackingNumber opcional
+        // pasamos meta con trackingNumber si existe
+        await OrdersService.updateOrderStatus(orderId, status, { trackingNumber });
         res.json({ message: 'Estado actualizado' });
     } catch (error: any) {
         res.status(400).json({ message: error.message });
@@ -149,6 +150,23 @@ export const updateReturnStatus = async (req: AuthenticatedRequest, res: Respons
         const returnId = parseInt(req.params.id!);
         const { status } = req.body;
         const result = await OrdersService.updateReturnStatus(returnId, status);
+        res.json(result);
+    } catch (error: any) {
+        res.status(400).json({ message: error.message });
+    }
+};
+
+/**
+ * Cancelar un pedido por su ID (usuario).
+ * @route POST /orders/:id/cancel
+ * @access Private (usuario autenticado)
+ * @param {AuthenticatedRequest} req - Request con `params.id` del pedido y `user` extraído del JWT.
+ * @param {Response} res - Response con mensaje de confirmación y monto reembolsado (si aplica).
+ */
+export const cancelOrder = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const orderId = parseInt(req.params.id!);
+        const result = await OrdersService.cancelOrder(orderId, req.user!.id);
         res.json(result);
     } catch (error: any) {
         res.status(400).json({ message: error.message });

@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <!-- Título del email dinámico según el ID del pedido -->
+    <title>Pedido enviado — #<%= order.id %></title>
+    <!-- Estilos limpios y responsivos para email -->
+    <style>
+        body { font-family: 'Montserrat', Arial, sans-serif; background:#fafafa; color:#333; margin:0; padding:0; }
+        .container { max-width:700px; margin:0 auto; background:#fff; padding:20px; border-radius:8px; }
+        .header { display:flex; justify-content:center; align-items:center; border-bottom:3px solid #222; padding-bottom:12px; margin-bottom:18px; }
+        .logo { font-family:'Playfair Display', serif; font-size:30px; color:#e91e63; font-weight:700; }
+        h1 { font-family:'Playfair Display', serif; font-size:20px; text-align:center; color:#222; margin-bottom:12px; }
+        p { font-size:14px; line-height:1.6; color:#444; margin:8px 0; }
+        .footer { border-top:3px solid #222; margin-top:24px; padding-top:18px; font-size:12px; color:#888; text-align:center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header del email con logo -->
+        <div class="header">
+            <div class="logo">ShopBrands</div>
+        </div>
+
+        <!-- Mensaje principal indicando que se ha cancelado -->
+        <h1>Tu pedido ha sido enviado</h1>
+
+        <!-- Información sobre la canelación, reembolsos y tiempos estimados -->
+        <p>Hola <%= order.user.first_name %>,</p>
+        <p>Tu pedido <strong>#<%= order.id %></strong> ha salido de nuestros almacenes y está en camino.
+        <% if (trackingNumber) { %>
+        <p>Nº de seguimiento: <strong><%= trackingNumber %></strong></p>
+        <% } else { %>
+        <p>En breve recibirás el número de seguimiento si la agencia lo proporciona.</p>
+        <% } %>
+        <p>Gracias por tu confianza,<br><strong>El equipo de ShopBrands</strong></p>
+
+        <!-- Footer con contacto para soporte -->
+        <div class="footer">
+        Si tienes dudas, escríbenos a <a href="mailto:soporte@shopbrands.com">soporte@shopbrands.com</a>
+        </div>
+    </div>
+</body>
+</html>
