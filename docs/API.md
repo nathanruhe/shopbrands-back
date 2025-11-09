@@ -26,6 +26,9 @@ Documentación de la API basada en la especificación `openapi.yam`.
 |:-----------------:|:------:|:--------------------------:|-----------------------------------------------------|
 | **Auth**	        | POST	 | /auth/register	          | Registrar nuevo usuario                             |
 | **Auth**	        | POST	 | /auth/login	              | Iniciar sesión                                      |
+| **Auth**	        | PUT	 | /auth/change-password	  | Cambiar contraseña (autenticado)                    |
+| **Auth**	        | POST	 | /auth/forgot-password	  | Solicitar recuperación de contraseña                |
+| **Auth**	        | POST	 | /auth/reset-password	      | Restablecer contraseña mediante token               |
 | **Users**	        | GET	 | /users	                  | Listar usuarios (admin)                             |
 | **Users**	        | GET	 | /users/me	              | Obtener perfil del usuario (autenticado)            |
 | **Users**	        | PUT	 | /users/me	              | Actualizar perfil del usuario (autenticado)         |
@@ -118,6 +121,59 @@ Responses
 ```
 ```json 
 400 / 401 — ErrorResponse
+```
+
+### PUT /auth/change-password → Cambiar contraseña usuario autenticado.
+- Auth: Sí (Bearer).
+
+Request Body:
+```json
+{
+    "current_password": "antigua123",
+    "new_password": "nuevaSegura456"
+}
+```
+Responses
+```json
+200 OK — { "message": "Contraseña actualizada correctamente" }
+```
+```json 
+400 / 401 — { "message": "Contraseña actual incorrecta" }
+```
+
+### POST /auth/forgot-password → Solicitar recuperación de contraseña
+- Auth: No.
+
+Request Body:
+```json
+{
+  "email": "usuario@example.com"
+}
+```
+Responses
+```json
+200 OK — { "message": "Hemos enviado un correo con las instrucciones para restablecer tu contraseña." }
+```
+```json 
+400 — { "message": "No existe una cuenta registrada con este correo" }
+```
+
+### POST /auth/reset-password → Restablecer contraseña mediante token
+- Auth: No.
+
+Request Body:
+```json
+{
+  "token": "d0f2e3c4b5...",
+  "new_password": "contraseñaNueva123"
+}
+```
+Responses
+```json
+200 OK — { "message": "Contraseña restablecida correctamente" }
+```
+```json 
+400 — { "message": "Token inválido o expirado" }
 ```
 
 <br>
