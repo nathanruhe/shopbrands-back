@@ -153,7 +153,7 @@ export const AuthService = {
 
         // Usa variable de entorno o localhost en desarrollo
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        const resetLink = `${baseUrl}/reset-password?token=${token}`;
+        const resetLink = `${baseUrl}/auth/reset-password?token=${token}`;
 
         // 5️⃣ Enviar el email usando el sistema de notificaciones
         await sendPasswordResetEmail(email, resetLink);
