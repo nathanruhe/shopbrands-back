@@ -31,11 +31,17 @@ export const AddressesService = {
      * });
      */
     async createAddress(userId: number, data: any) {
-        const { first_name, last_name, street, city, province, postal_code, country, phone, type } = data;
+        const { first_name, last_name, street, city, province, postal_code, country, phone, type, is_default } = data;
 
+        // Si se quiere marcar como principal, quitamos la principal anterior
+        if (is_default) {
+            await db.query(`UPDATE addresses SET is_default = 0 WHERE user_id = ?`, [userId]);
+        }
+
+        // Insertar la nueva dirección una sola vez con el valor correcto de is_default
         await db.query(CREATE_ADDRESS, [
             userId,
-            first_name, 
+            first_name,
             last_name,
             street,
             city,
@@ -43,7 +49,8 @@ export const AddressesService = {
             postal_code,
             country,
             phone,
-            type || 'shipping'
+            type || 'shipping',
+            is_default ? 1 : 0
         ]);
 
         return { message: 'Dirección añadida correctamente' };
@@ -92,7 +99,7 @@ export const AddressesService = {
 
         const address = rows[0];
 
-        // Actualiza solo los campos enviados
+        // Preparar los datos actualizados (campos de dirección)
         const updated = {
             first_name: data.first_name ?? address.first_name,
             last_name: data.last_name ?? address.last_name,
@@ -105,6 +112,15 @@ export const AddressesService = {
             type: data.type ?? address.type
         };
 
+        // Si se quiere marcar como dirección principal
+        if (data.is_default === true || data.is_default === 1) {
+            await db.query(
+                `UPDATE addresses SET is_default = 0 WHERE user_id = ?`,
+                [userId]
+            );
+        }
+
+        // Actualizar la dirección con todos sus campos
         await db.query(UPDATE_ADDRESS_BY_ID, [
             updated.first_name,
             updated.last_name,
@@ -118,6 +134,14 @@ export const AddressesService = {
             addressId,
             userId
         ]);
+
+        // Si se marcó como principal, actualizar el flag
+        if (data.is_default === true || data.is_default === 1) {
+            await db.query(
+                `UPDATE addresses SET is_default = 1 WHERE id = ? AND user_id = ?`,
+                [addressId, userId]
+            );
+        }
 
         return { message: 'Dirección actualizada correctamente' };
     },

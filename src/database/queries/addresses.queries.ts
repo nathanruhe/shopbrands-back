@@ -15,8 +15,8 @@
  * await db.query(CREATE_ADDRESS, [userId, firstName, lastName, street, city, province, postalCode, country, phone, type]);
  */
 export const CREATE_ADDRESS = `
-    INSERT INTO addresses (user_id, first_name, last_name, street, city, province, postal_code, country, phone, type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO addresses (user_id, first_name, last_name, street, city, province, postal_code, country, phone, type, is_default)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 /**
@@ -27,9 +27,10 @@ export const CREATE_ADDRESS = `
  * const addresses = await db.query(GET_ADDRESSES_BY_USER, [userId]);
  */
 export const GET_ADDRESSES_BY_USER = `
-    SELECT id, first_name, last_name, street, city, province, postal_code, country, phone, type, created_at, updated_at
+    SELECT id, first_name, last_name, street, city, province, postal_code, country, phone, type, is_default, created_at, updated_at
     FROM addresses
     WHERE user_id = ?
+    ORDER BY is_default DESC, created_at DESC
 `;
 
 /**
@@ -77,4 +78,17 @@ export const DELETE_ADDRESS_BY_ID = `
  */
 export const GET_ADDRESS_BY_ID = `
     SELECT * FROM addresses WHERE id = ? AND user_id = ?
+`;
+
+
+export const CLEAR_DEFAULT_ADDRESSES = `
+UPDATE addresses
+SET is_default = 0
+WHERE user_id = ?
+`;
+
+export const SET_DEFAULT_ADDRESS = `
+UPDATE addresses
+SET is_default = 1
+WHERE id = ? AND user_id = ?
 `;

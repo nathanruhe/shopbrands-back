@@ -3,6 +3,7 @@ import authRoutes from './modules/auth/auth.routes';
 import usersRoutes from './modules/users/users.routes';
 import addressesRoutes from './modules/addresses/addresses.routes';
 import productsRoutes from './modules/products/products.routes';
+import categoriesRoutes from './modules/categories/categories.routes';
 import cartRoutes from './modules/cart/cart.routes';
 import ordersRoutes from './modules/orders/orders.routes';
 import paymentsRoutes from './modules/payments/payments.routes';
@@ -30,6 +31,7 @@ router.use('/auth', authRoutes);        // Autenticación (login, register)
 router.use('/users', usersRoutes);      // Gestión de usuarios
 router.use('/addresses', addressesRoutes); // Gestión de direcciones
 router.use('/products', productsRoutes); // Gestión de productos
+router.use('/categories', categoriesRoutes); // Gestión de categorías
 router.use('/cart', cartRoutes);        // Gestión de carrito
 router.use('/orders', ordersRoutes);     // Gestión de pedidos
 router.use('/payments', paymentsRoutes); // Gestión de pagos

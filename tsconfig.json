@@ -10,7 +10,7 @@
     "target": "ES2020",              // Buena compatibilidad y soporte async/await
     "lib": ["ES2020"],               // Librerías base incluidas
     "esModuleInterop": true,         // Permite imports más limpios (import express from 'express')
-    "moduleResolution": "node",      // Usa la resolución de módulos de Node.js
+    "moduleResolution": "bundler",  // Usa la resolución de módulos moderna
     "types": ["node"],               // Incluye tipado global de Node
     "resolveJsonModule": true,       // Permite importar archivos .json directamente
 
